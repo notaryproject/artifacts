@@ -133,7 +133,7 @@ The main scenarios include:
 
 1. [Content Discovery](#content-discovery)
 1. [Content Promotion Within and Across Registries](#content-promotion-within-and-across-registries)
-1. [Deletion management](#content-deletion), providing information to de-dupe content with reference counting, and the option to delete loose references.
+1. [Lifetime management](#lifetime-management), including deletion of artifacts and their linked references.
 
 ### Content Discovery
 
@@ -260,7 +260,7 @@ oci-reg copy \
   --include-enhancements application/vnd.notary.v2.config.v1+json
 ```
 
-### Content Deletion
+### Lifetime Management
 
 Using the OCI artifact manifest, OCI distribution-spec APIs can provide standard delete operations, including options for deleting referenced artifacts. The registry, nor the `oci-reg` cli would need to know about specific artifact implementations.
 
@@ -273,88 +273,26 @@ oci-reg delete registry.acme-rockets.io/base-artifacts/wordpress:5
 **Example**: Deleting artifact enhancements:
 
 ```bash
-oci-reg delete-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg link-delete registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
 
 **Example**: Deleting specific artifact enhancement types:
 
 ```bash
-oci-reg delete-enhancements \
+oci-reg link-delete \
   --artifactType application/vnd.cncf.notary.v2.config.v1+json \
   registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
 
-**Example**: List artifact enhancements:
+**Example**: List artifact links:
 
-**OPTION A**:
-
-```bash
-oci-reg list-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
-[
-  {
-    "artifactType": "application/vnd.cncf.notary.v2+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.cncf.notary.v2.signature.subject": "docker.io"
-    }
-  },
-  {
-    "artifactType": "application/vnd.cncf.notary.v2+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.cncf.notary.v2.signature.subject": "registry.acme-rockets.io"
-    }
-  },
-  {
-    "artifactType": "application/vnd.example.sbom.v1+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "openssf.sbom.author": "docker.io"
-    }
-  }
-]
-```
-
-**OPTION B**:
+To delete a specific linked artifact, a `link-list` query would be executed:
 
 ```bash
-oci-reg list-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
-[
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
-      "org.cncf.notary.v2.signature.subject": "docker.io"
-    }
-  },
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
-      "org.cncf.notary.v2.signature.subject": "registry.acme-rockets.io"
-    }
-  },
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.example.sbom.v1+json",
-      "openssf.sbom.author": "docker.io"
-    }
-  }
-]
+oci-reg link-list registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
+
+The results would include the `artifactType` and digest. See [Links API](#links-api) for more details.
 
 **Example**: Deleting a specific artifact enhancement:
 
@@ -394,6 +332,152 @@ Examples include:
 `manifests` are collections of Content Descriptors.
 
 ## Links API
+
+Return all artifacts that are linked the given manifest digest. Linked artifact request is scoped to a respository to ensure that access tokens for that repository can be used as authorization for the linked artifacts which is the same scope as the manifest of the parent artifact.
+
+### Request all linked artifacts
+
+```rest
+GET /v2/{repository}/_links/{digest}/list?n=10
+```
+
+### Request artifacts of a specific media type
+
+```rest
+GET /v2/{repository}/_links/{digest}/list?mediaType=application/vnd.oci.notary.v2.config+json&&n=10
+```
+
+### Link-list API results
+
+A summary paged result of manifests, including the descriptor and annotations.
+
+**OPTION A**:
+
+```bash
+[
+  {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+    "size": 16724,
+    "annotations": {
+      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
+      "org.cncf.notary.v2.signature.subject": "docker.io"
+    }
+  },
+  {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+    "size": 16724,
+    "annotations": {
+      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
+      "org.cncf.notary.v2.signature.subject": "registry.acme-rockets.io"
+    }
+  },
+  {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+    "size": 16724,
+    "annotations": {
+      "org.oci.artifacts.artifactType": "application/vnd.example.sbom.v1+json",
+      "openssf.sbom.author": "docker.io"
+    }
+  }
+]
+```
+
+**OPTION B**:
+
+Return a paged collection of manifests, with the entire contents of the manifest.
+
+```json
+{
+  "manifests": [
+    {
+      {oci-descriptor},
+      {manifest}
+    }
+  ],
+  "@nextLink": "{opaqueUrl}"
+}
+```
+
+This paged result will return the required elements, including:
+
+- digest (within the descriptor)
+- artifactType (within the manifest)
+- annotations (within the manifest), that may be used for additional filtering. Such as pulling the `registry.acme-rockets.io` Notary v2 signature.
+
+```json
+{
+  "manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+      "size": 16724,
+      "manifest": {
+        "schemaVersion": 1,
+        "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+        "artifactType": "application/vnd.cncf.notary.v2+json",
+        "config": {
+          "mediaType": "application/vnd.cncf.notary.config.v2+json",
+          "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
+          "size": 102
+        },
+        "blobs": [
+          {
+            "mediaType": "application/tar",
+            "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+            "size": 32654
+          }
+        ],
+        "manifests": [
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+            "size": 16724
+          }
+        ],
+        "annotations": {
+          "org.cncf.notary.v2.signature.subject": "docker.io"
+        }
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6c",
+      "size": 16724,
+      "manifest": {
+        "schemaVersion": 1,
+        "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+        "artifactType": "application/vnd.example.sbom.v1+json",
+        "config": {
+          "mediaType": "application/vnd.example.sbom.config.v1+json",
+          "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
+          "size": 102
+        },
+        "blobs": [
+          {
+            "mediaType": "application/tar",
+            "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+            "size": 32654
+          }
+        ],
+        "manifests": [
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+            "size": 16724
+          }
+        ],
+        "annotations": {
+          "openssf.sbom.author": "docker.io"
+        }
+      }
+    }
+  ],
+  "@nextLink": "{opaqueUrl}"
+}
+```
 
 ## Annotations
 
