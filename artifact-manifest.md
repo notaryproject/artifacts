@@ -147,7 +147,7 @@ In the above example, all the artifacts are displayed without relation to each o
 
 In the above example, the Notary v2 signature, an SBoM and collection of attributes are displayed as directly associated with their primary artifact. The enhancements can be collapsed as the OCI artifact manifest provides the information required to assign them to their referenced artifact.
 
-See [`_links`](#links-api) API for more information on listing referenced content.
+See [`Linked Artifacts API`](#linked-artifacts-api) for more information on listing referenced content.
 
 ### Content Promotion Within and Across Registries
 
@@ -273,23 +273,23 @@ oci-reg delete registry.acme-rockets.io/base-artifacts/wordpress:5
 **Example**: Deleting artifact enhancements:
 
 ```bash
-oci-reg link-delete registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg link delete registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
 
 **Example**: Deleting specific artifact enhancement types:
 
 ```bash
-oci-reg link-delete \
+oci-reg link delete \
   --artifactType application/vnd.cncf.notary.v2.config.v1+json \
   registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
 
 **Example**: List artifact links:
 
-To delete a specific linked artifact, a `link-list` query would be executed:
+To delete a specific linked artifact, a `link list` query would be executed:
 
 ```bash
-oci-reg link-list registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg link list registry.acme-rockets.io/base-artifacts/wordpress:5
 ```
 
 The results would include the `artifactType` and digest. See [Links API](#links-api) for more details.
@@ -319,9 +319,9 @@ Alternate names:
 - `parents`
 - `enhances`
 
-The `manifests` collection is an optional collection of references to other artifacts. The artifact is said to enhance the dependent artifacts by adding additional content. The content may be added after the initial content was created or pushed to a registry. By supporting additional content, the referenced artifact can be enhanced without having to change the referenced artifacts manifest, digest or tag.
+The `manifests` collection is an optional collection of OCI Content Descriptors that reference other artifacts. The artifact is said to enhance the dependent artifacts by adding additional content. The content may be added after the initial content was created or pushed to a registry. By supporting additional content, the referenced artifact can be enhanced without having to change the referenced artifacts manifest, digest or tag.
 
-All extension artifacts are stored without tags, and must be stored in the same repository as the artifact they are extending.
+Extension artifacts MAY be stored with or without tags. All extension artifacts MUST be stored in the same repository as the artifact they are extending (linking).
 
 Examples include:
 
@@ -329,25 +329,47 @@ Examples include:
 - SBoM documents
 - Artifact Meta-data
 
-`manifests` are collections of Content Descriptors.
+## Linked Artifacts API
 
-## Links API
+Returns all artifacts that are linked a given manifest digest. Linked artifact requests are scoped to a repository, ensuring access tokens for the repository can be used as authorization for the linked artifacts.
 
-Return all artifacts that are linked the given manifest digest. Linked artifact request is scoped to a respository to ensure that access tokens for that repository can be used as authorization for the linked artifacts which is the same scope as the manifest of the parent artifact.
+### Request All Linked Artifacts
 
-### Request all linked artifacts
+**OPTION A**
 
-```rest
-GET /v2/{repository}/_links/{digest}/list?n=10
-```
-
-### Request artifacts of a specific media type
+Part of the v2 distribution API set:
 
 ```rest
-GET /v2/{repository}/_links/{digest}/list?mediaType=application/vnd.oci.notary.v2.config+json&&n=10
+GET /v2/{repository}/manifests/{digest}/links?n=10
 ```
 
-### Link-list API results
+**OPTION B**
+
+Defined as an extension `/oci/artifacts/v1/`
+
+```rest
+GET /oci/artifacts/v1/{repository}/manifests/{digest}/links?n=10
+```
+
+### Request Artifacts of a specific media type
+
+```rest
+GET /v2/{repository}/manifests/{digest}/links?artifactType={artifactType}&n=10
+
+GET /v2/{repository}/manifests/{digest}/links?artifactType=application/vnd.oci.notary.v2.config+json&n=10
+
+GET /oci/artifacts/links/v2/{repository}/manifests/{digest}/links?artifactType=application/vnd.oci.notary.v2.config+json&n=10
+
+# or:
+
+GET /v2/{repository}/manifests/{digest}/manifests?artifactType={artifactType}&n=10
+
+GET /v2/{repository}/manifests/{digest}/manifests?artifactType=application/vnd.oci.notary.v2.config+json&n=10
+
+GET /oci/artifacts/links/v2/{repository}/manifests/{digest}/manifests?artifactType=application/vnd.oci.notary.v2.config+json&n=10
+```
+
+### Linked Artifact List API results
 
 A summary paged result of manifests, including the descriptor and annotations.
 
@@ -389,12 +411,12 @@ A summary paged result of manifests, including the descriptor and annotations.
 
 Return a paged collection of manifests, with the entire contents of the manifest.
 
-```json
+```bash
 {
   "manifests": [
     {
-      {oci-descriptor},
-      {manifest}
+      "oci-descriptor",
+      "manifest"
     }
   ],
   "@nextLink": "{opaqueUrl}"
@@ -403,9 +425,11 @@ Return a paged collection of manifests, with the entire contents of the manifest
 
 This paged result will return the required elements, including:
 
-- digest (within the descriptor)
-- artifactType (within the manifest)
-- annotations (within the manifest), that may be used for additional filtering. Such as pulling the `registry.acme-rockets.io` Notary v2 signature.
+- `digest` (within the descriptor)
+- `artifactType` (within the manifest)
+- `annotations` (within the manifest), that may be used for additional filtering. Such as pulling the `registry.acme-rockets.io` Notary v2 signature.
+
+**Example**: Two manifests returned: a Notary v2 signature and an SBoM, enabling the client to determine which it requires with subsequent pulls of the config or blob contents.
 
 ```json
 {
