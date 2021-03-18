@@ -1,6 +1,8 @@
 # OCI Artifact Manifest
 
-The OCI artifact manifest improves upon the use of OCI image-manifest, using a unique `manifest.config.mediaType`. OCI artifact manifest provides a means to define a wide range of artifacts, including a chain of dependencies of related artifacts. It provides a means to define independent artifacts, however the primary scenario is to enhance other artifact types, including enhancing OCI image-manifest and OCI image-index.
+The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, Signatures and metadata. The decision to use `oci.artifact.manifest`, [oci.image.manifest][oci-image-manifest-spec] or [oci.image.index][oci-image-index] is up to the authors of specific artifact types.
+
+For spec details, see [artifact-manifest-spec.md](./artifact-manifest-spec.md)
 
 ## Canonical Artifact Types
 
@@ -9,55 +11,70 @@ OCI artifact manifest is intended to support the following types of artifacts:
 - [Individual Artifacts](#individual-artifacts)
 - [Artifact Enhancements](#artifact-enhancements)
 
+## Example OCI Artifact Manifests
+
+- [`net-monitor:v1` container image](./artifact-manifest/net-monitor-image.json)
+- [`net-monitor:v1` notary v2 signature](./artifact-manifest/net-monitor-image-signature.json)
+- [`net-monitor:v1` sbom](./artifact-manifest/net-monitor-image-sbom.json)
+- [`net-monitor:v1` nydus image](./artifact-manifest/net-monitor-nydus-image.json)
+
 ### Individual Artifacts
 
-An artifact may define a `config` object or share a `config` schema with other artifact types. The `oci.artifact.manifest` root `artifactType` property decouples the declaration of the type of artifact, from the type of config object used. All scenarios covered with the initial OCI Artifact definition may be migrated to the OCI artifact manifest with the additional capabilities of referencing existing `manifests`.
+Individual artifacts include Helm, Singularity, WASM and other artifacts that currently use OCI Artifact v1 definitions. The main differentiation to types currently supported with oci.manifest is the ability to decouple the config from the artifact type definition. All scenarios covered with the initial OCI Artifact definition may be migrated to the OCI artifact manifest with the additional capabilities of referencing existing `manifests`.
 
 ### Artifact Enhancements
 
-An OCI Image is based on the oci-image-manifest, with a collection of manifests being represented as an OCI Index. The OCI Image manifest provides for an optional config object and a collection of layers, persisted as blobs. The Image manifest directly references the config and layer objects through OCI image-descriptors. The OCI image and index manifests are stored through content digests. The content digests are immutable, blocking any ability to add data to the objects at a later point.
+There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add an SBoM. The addition of a [`[references]`][references] property supports linking an SBoM to an image. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding SBoM or Notary v2 signatures can find the linked artifacts without changing the existing image toolchains.
 
-![OCI Image](./media/wordpress-image-layers.svg)
+### Example Image
 
-**digest:** `wordpress@sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b`
+The net-monitor image contains a config and a collection of layers, as defined by the [oci-image-spec][oci-image-manifest-spec].
+
+![OCI Image](./media/net-monitor-image.svg)
+
+The `net-monitor:v1` image has a representative `oci.image.manifest`, with a specific digest:
+
+**digest:** `net-monitor@sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333`
 ```json
 {
   "schemaVersion": 2,
   "config": {
     "mediaType": "application/vnd.oci.image.config.v1+json",
     "size": 7097,
-    "digest": "sha256:c8562eaf9d81c779cbfc318d6e01b8e6f86907f1d41233268a2ed83b2f34e748"
+    "digest": "sha256:e752324f6804d5d0b2c098f84507d095a8fd0031cf06cdb3c7ad1625dcd1b399"
   },
   "layers": [
     {
       "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-      "size": 27108069,
-      "digest": "sha256:a076a628af6f7dcabc536bee373c0d9b48d9f0516788e64080c4e841746e6ce6"
+      "size": 25851449,
+      "digest": "sha256:83c5cfdaa5385ea6fc4d31e724fd4dc5d74de847a7bdd968555b8f2c558dac0e"
     },
     {
       "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-      "size": 1741,
-      "digest": "sha256:f6c208f3f991dcbc417fed8efde391f887c0551d77ed0c1a125fd28f4841e1cc"
+      "size": 226,
+      "digest": "sha256:7445693bd43e8246a8c166233392b33143f7f5e396c480f74538e5738fb6bd6e"
     }
   ]
 }
 ```
 
-To support enhancements of existing artifacts, a new OCI artifact manifest provides for a collection of manifest references. Examples include Notary and SBoM artifacts.
-
 ### Notary v2 Signatures and SBoM Persistance
 
-A Notary v2 signature, or an SBoM, would be represented as a manifest with a config object and a signature, persisted as blobs.
+To support enhancements of existing artifacts, a new OCI artifact manifest provides for a collection of manifest references. Examples include Notary and SBoM artifacts.
+
+A Notary v2 signature, or an SBoM, would be represented as a manifest with a config object and a signature, persisted as blobs. The `[references]` collection references the wordpress image through a descriptor.
 
 ![Notary v2 signature](./media/notaryv2-signature.svg)
 
-**A Notary v2 signature of the `wordpress:5` image:**
+**A Notary v2 signature of the `net-monitor:v1` image:**
+
+**digest:** `net-monitor@sha256:8ac803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c222`
 
 ```json
 {
   "schemaVersion": 1,
   "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-  "artifactType": "application/vnd.cncf.notary.v2+json",
+  "artifactType": "application/vnd.cncf.notary.v2",
   "config": {
     "mediaType": "application/vnd.cncf.notary.config.v2+json",
     "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
@@ -70,11 +87,11 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
       "size": 32654
     }
   ],
-  "manifests": [
+  "references": [
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-      "size": 16724
+      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
+      "size": 4501
     }
   ],
   "annotations": {
@@ -83,15 +100,17 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
 }
 ```
 
+The same `net-monitor:v1` image may have an associated SBoM. The `[references]` collection references the `net-monitor:v1` image through a descriptor.
+
 ![Notary v2 signature](./media/sbom-document.svg)
 
-**An SBoM of the `wordpress:5` image:**
+**digest:** `net-monitor@sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a81`
 
 ```json
 {
   "schemaVersion": 1,
   "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-  "artifactType": "application/vnd.example.sbom.v1+json",
+  "artifactType": "application/vnd.example.sbom.v1",
   "config": {
     "mediaType": "application/vnd.example.sbom.config.v1+json",
     "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
@@ -104,28 +123,25 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
       "size": 32654
     }
   ],
-  "manifests": [
+  "references": [
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-      "size": 16724
+      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
+      "size": 4501
     }
-  ],
-  "annotations": {
-    "example.sbom.author": "docker.io"
-  }
+  ]
 }
 ```
 
-Neither the signature, nor the SBoM, have value unto themselves. A signature and SBoM extend a given artifact. They're considered as dependent upon another artifact. The `manifests` collection references the `wordpress:5` digest, creating the dependency.
+Once all artifacts are submitted, the registry would represent a graph of the `net-monitor:v1` image, with signatures, an SBoM, along with a signature on the SBoM.
 
-![wordpress image with layers](media/wordpress-image-layers-sig-sbom.svg)
+![wordpress image with layers](media/net-monitor-graph.svg)
 
-The Notary v2 signature and SBoM reference the `wordpress:5` image through the `manifests` collection. The `wordpress:5` image is represented as an oci-image, and requires no changes to its manifest to support the enhancements. The directionality of the references indicates the references in the `wordpress:5` image & the Notary v2 and SBoM manifest references to existing content.
+The Notary v2 signature and SBoM reference the `net-monitor:v1` image through the `[references]` collection. The `net-monitor:v1` image is represented as an oci-image, and requires no changes to its manifest to support the enhancements. The directionality of the `[references]` references enables links to existing content, without changing the existing content.
 
-Each OCI artifact manifest is independent, supporting multiple signatures, SBoMs and other artifacts to be added after the image was persisted. While an image knows of it's layers, and a Notary v2 signature knows of its config and blob, the image manifest does not know about the Notary v2 signature, nor the SBoM. The Notary v2 signature declares a dependency to the artifact it's signing. Upon upload completion, the registry would persist a reference between the `wordpress:5` image and the Notary v2 signature.
+### Deletion and Ref Counting
 
-The manifests reference are said to be hard references. Just as the layers of an OCI Image are deleted (*ref-counted -1*), the blobs of a signature are deleted (*ref-counted -1*) when the signature is deleted. Likewise, when the `wordpress:5` image is deleted, the signatures and SBoM would be deleted (*ref-counted -1*) as the signatures and SBoMs have no value without the artifact they are signing.
+The manifests reference are said to be hard references. Just as the layers of an OCI Image are deleted (*ref-counted -1*), the blobs of a signature are deleted (*ref-counted -1*) when the signature is deleted. Likewise, when the `net-monitor:v1` image is deleted, the signatures and SBoM would be deleted (*ref-counted -1*) as the signatures and SBoMs have no value without the artifact they are signing.
 
 ## Artifact Manifest Scenarios
 
@@ -147,13 +163,13 @@ In the above example, all the artifacts are displayed without relation to each o
 
 In the above example, the Notary v2 signature, an SBoM and collection of attributes are displayed as directly associated with their primary artifact. The enhancements can be collapsed as the OCI artifact manifest provides the information required to assign them to their referenced artifact.
 
-See [`_links`](#links-api) API for more information on listing referenced content.
+See [`/references`][references-api] API for more information on listing referenced content.
 
-### Content Promotion Within and Across Registries
+## Content Promotion Within and Across Registries
 
-Artifacts are promoted within a registry or across different registries. They may be promoted from dev, through test, to staging. They may continue movement to a distribution point or deployment. As artifacts are promoted, content related to that artifact SHOULD be capable of moving with the artifact. The OCI artifact manifest provides the references enabling discovery and promotion.
+Artifacts are promoted within and across different registries. They may be promoted from dev, through test, to production. They may continue movement to a distribution point or deployment. As artifacts are promoted, content related to that artifact must be capable of moving with the artifact. The OCI artifact manifest provides the references enabling discovery and promotion.
 
-#### Example of Content Movement Within and Across Registries
+### Example of Content Movement Within and Across Registries
 
 **Example**: Content promoted across repositories within the same registry:
 
@@ -207,34 +223,34 @@ products.wabbit-networks.io/
 
 #### Copying an OCI Image
 
-![Wordpress image copy](media/wordpress-copy.svg)
+![net-monitor image copy](media/net-monitor-copy.svg)
 
-As a reference, copying a container from a public registry to a private registry would involve `docker pull`, `docker tag` and `docker push`
+As a reference, copying an image from a public registry to a private registry would involve `docker pull`, `docker tag` and `docker push`
 
 ```bash
-docker pull wordpress:5
-docker tag wordpress:5 registry.acme-rockets.io/base-artifacts/wordpress:5
-docker push registry.acme-rockets.io/base-artifacts/wordpress:5
+docker pull net-monitor:v1
+docker tag net-monitor:v1 registry.acme-rockets.io/base-artifacts/net-monitor:v1
+docker push registry.acme-rockets.io/base-artifacts/net-monitor:v1
 ```
 
 The above commands account for the image manifest and the associated layers. Note the directionality of the manifest `-->` config and layers references. A manifest declares the config and layers that must be accounted for before a manifest may be considered valid within a registry.
 
-#### Copying an OCI Image with Enhancements
+### Copying an OCI Image with References
 
-![wordpress image copy, with signatures](./media/wordpress-with-sigs-copy.svg)
+![net-monitor image copy, with signatures](./media/net-monitor-with-sigs-copy.svg)
 
-Notary v2 signatures and a Notary v2 signed SBoM have been added to the `wordpress:5` image. Note the directionality of the SBoM and Notary v2 signature references. The Notary v2 signature and SBoM `-->` reference the `wordpress:5` image. From a user experience perspective, copying a container from a public registry to a private registry should copy the signatures and SBoM alongside the artifact they've signed. The OCI artifact manifest provides the information needed for a registry to index references from either direction.
+Notary v2 signatures and a Notary v2 signed SBoM have been added to the `net-monitor:v1` image. Note the directionality of the SBoM and Notary v2 signature references. The Notary v2 signature and SBoM `-->` reference the `net-monitor:v1` image. From a user experience perspective, copying an image from a public registry to a private registry should copy the signatures and SBoM alongside the artifact they've signed. The OCI artifact manifest provides the information needed for a registry to index references from either direction.
 
-#### OCI-Registry CLI
+### OCI-Registry CLI
 
-To copy the above image and the associated signatures, a new `oci-reg` cli is used for illustrative purposes. The `oci-reg` cli is an example of tools that can be built by the community, as they would work within and across different OCI conformant registry implementations.
+To copy the above image and the associated signatures, an `oci-reg` cli is used for illustrative purposes. The `oci-reg` cli is an example of tools that could be built by the community, as they would work within and across different OCI conformant registry implementations.
 
-The following command would copy the `wordpress:5` image from docker hub to the acme-rockets registry. The CLI _could_ be run within the source or target cloud eliminating the download/upload network hops.
+The following command would copy the `net-monitor:v1` image from docker hub to the acme-rockets registry. The CLI _could_ be run within the source or target cloud eliminating the download/upload network hops.
 
 ```bash
 oci-reg copy \
-  --source docker.io/library/wordpress:5 \
-  --target registry.acme-rockets.io/base-artifacts/wordpress:5
+  --source docker.io/wabbitnetworks/net-monitor \
+  --target registry.acme-rockets.io/base-artifacts/net-monitor:v1
 ```
 
 The `oci-reg copy` command would:
@@ -242,202 +258,62 @@ The `oci-reg copy` command would:
 - assure the manifest and layer/blob digests remain the same
 - copy any artifacts that are dependent on the source artifact-manifest, persisting them in the target registry. These _could_ include Notary v2 signatures, SBoMs, GPL source or other referenced artifacts.
 
+As the `[references]` collection is an optional collection, it can also be used as an optional parameter for deep or shallow copying of content.
+
 **Example**: Optional parameters to include|exclude reference types:
 
 ```bash
 oci-reg copy \
-  --source docker.io/library/wordpress:5 \
-  --target registry.acme-rockets.io/base-artifacts/wordpress:5 \
-  --copy-enhancements disabled
+  --source docker.io/library/net-monitor:v1 \
+  --target registry.acme-rockets.io/base-artifacts/net-monitor:v1 \
+  --copy-references disabled
 ```
+
+As the referenced types are defined by the `manifest.artifactType`, copying specific content may be specified.
 
 **Example**: Filter the types of enhancements:
 
 ```bash
 oci-reg copy \
-  --source docker.io/library/wordpress:5 \
-  --target registry.acme-rockets.io/base-artifacts/wordpress:5 \
-  --include-enhancements application/vnd.notary.v2.config.v1+json
+  --source docker.io/library/net-monitor:v1 \
+  --target registry.acme-rockets.io/base-artifacts/net-monitor:v1 \
+  --include-references application/vnd.notary.v2
 ```
 
 ### Content Deletion
 
 Using the OCI artifact manifest, OCI distribution-spec APIs can provide standard delete operations, including options for deleting referenced artifacts. The registry, nor the `oci-reg` cli would need to know about specific artifact implementations.
 
-**Example**: Deleting images, with their Notary and SBoM enhancements:
+**Example**: Deleting images, with their Notary v2 and SBoM references:
 
 ```bash
-oci-reg delete registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg delete registry.acme-rockets.io/base-artifacts/net-monitor:v1
 ```
 
-**Example**: Deleting artifact enhancements:
+**Example**: Deleting artifact references:
 
 ```bash
-oci-reg delete-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg delete-references registry.acme-rockets.io/base-artifacts/net-monitor:v1
 ```
 
-**Example**: Deleting specific artifact enhancement types:
+**Example**: Deleting specific artifact reference types:
 
 ```bash
-oci-reg delete-enhancements \
-  --artifactType application/vnd.cncf.notary.v2.config.v1+json \
-  registry.acme-rockets.io/base-artifacts/wordpress:5
+oci-reg delete-references \
+  --artifactType application/vnd.cncf.notary.v2 \
+  registry.acme-rockets.io/base-artifacts/net-monitor:v1
 ```
 
-**Example**: List artifact enhancements:
-
-**OPTION A**:
+**Example**: Deleting a specific artifact reference:
 
 ```bash
-oci-reg list-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
-[
-  {
-    "artifactType": "application/vnd.cncf.notary.v2+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.cncf.notary.v2.signature.subject": "docker.io"
-    }
-  },
-  {
-    "artifactType": "application/vnd.cncf.notary.v2+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.cncf.notary.v2.signature.subject": "registry.acme-rockets.io"
-    }
-  },
-  {
-    "artifactType": "application/vnd.example.sbom.v1+json",
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "openssf.sbom.author": "docker.io"
-    }
-  }
-]
+oci-reg delete registry.acme-rockets.io/base-artifacts/net-monitor@sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7
 ```
 
-**OPTION B**:
+## Further reading
 
-```bash
-oci-reg list-enhancements registry.acme-rockets.io/base-artifacts/wordpress:5
-[
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
-      "org.cncf.notary.v2.signature.subject": "docker.io"
-    }
-  },
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.cncf.notary.v2+json",
-      "org.cncf.notary.v2.signature.subject": "registry.acme-rockets.io"
-    }
-  },
-  {
-    "mediaType": "application/vnd.oci.image.manifest.v1+json",
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "size": 16724,
-    "annotations": {
-      "org.oci.artifacts.artifactType": "application/vnd.example.sbom.v1+json",
-      "openssf.sbom.author": "docker.io"
-    }
-  }
-]
-```
+- [Spec details about the oci.artifact.manifest](./artifact-manifest-spec.md)
+- [OCI Artifact References API](./manifest-references-api.md) for more information on listing references
 
-**Example**: Deleting a specific artifact enhancement:
-
-```bash
-oci-reg delete registry.acme-rockets.io/base-artifacts/wordpress@sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7
-```
-
-## OCI Artifact Manifest Properties
-
-OCI Artifact Manifests provide the following types of references:
-
-- **Blobs:** Content that represents the artifact. These are analogues to layers from the OCI Image manifest and Config objects. Layers are renamed blobs as they represent a generic collection of content, as opposed to an ordered layered collection as defined by OCI Image Manifest. An artifact may treat them as ordered, but it is not required.
-- **Manifests** are dependent references to other artifacts that enhance the content, such as a Notary v2 signature or an SBoM. These dependencies are *unknown* by the original artifact as they are added at a later time. A registry would need to index these references as registry apis would request all content related to the source artifact.
-
-### Blobs Collection
-
-All `blobs` are considered to be hard dependencies that must be resolvable within a registry. An artifact is considered invalid if the manifest blobs are not resolvable. Registries MAY implement de-duping, using ref-counting to assure at least one copy of the blob is resolvable for any given `oci.artifact.manifest`. OCI Artifact blobs are generalizations of the OCI Image Spec layers definition.
-
-### Manifests Collection
-
-Alternate names:
-
-- `dependent-upon`
-- `parents`
-- `enhances`
-
-The `manifests` collection is an optional collection of references to other artifacts. The artifact is said to enhance the dependent artifacts by adding additional content. The content may be added after the initial content was created or pushed to a registry. By supporting additional content, the referenced artifact can be enhanced without having to change the referenced artifacts manifest, digest or tag.
-
-All extension artifacts are stored without tags, and must be stored in the same repository as the artifact they are extending.
-
-Examples include:
-
-- Notary v2 signatures
-- SBoM documents
-- Artifact Meta-data
-
-`manifests` are collections of Content Descriptors.
-
-## Links API
-
-## Annotations
-
-OCI Artifact Manifest includes several annotations that have been generalized from the image-spec annotations.
-
-- **`annotations`** *string-string map*
-
-    This OPTIONAL property contains arbitrary metadata for the image manifest.
-    This OPTIONAL property MUST use the [annotation rules](annotations.md#rules).
-
-    See [Pre-Defined Annotation Keys](annotations.md#pre-defined-annotation-keys).
-
-### Pre-Defined Annotation Keys
-
-This specification defines the following annotation keys, intended for but not limited to  Artifact Manifest authors:
-
-- **org.oci.artifact.artifactType** the `oci.artifact.manifest.artifactType`, providing information on the type of descriptor (string)
-- **org.oci.artifact.created** date and time on which the artifact was built (string, date-time as defined by [RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6)).
-- **org.oci.artifact.authors** contact details of the people or organization responsible for the artifact (freeform string)
-- **org.oci.artifact.url** URL to find more information on the artifact (string)
-- **org.oci.artifact.documentation** URL to get documentation on the artifact (string)
-- **org.oci.artifact.source** URL to get source code for building the artifact (string)
-- **org.oci.artifact.version** version of the packaged software
-  - The version MAY match a label or tag in the source code repository
-  - version MAY be [Semantic versioning-compatible](http://semver.org/)
-- **org.oci.artifact.revision** Source control revision identifier for the packaged software.
-- **org.oci.artifact.vendor** Name of the distributing entity, organization or individual.
-- **org.oci.artifact.title** Human-readable title of the artifact (string)
-- **org.oci.artifact.description** Human-readable description of the software packaged in the artifact (string)
-
-```json
-{
-  "annotations": {
-    "org.oci.artifact.created": "",
-    "org.oci.artifact.authors": "",
-    "org.oci.artifact.url": "opencontainers.org",
-    "org.oci.artifact.documentation": "opencontainers.org",
-    "org.oci.artifact.source": "https://github.com/opencontainers/artifacts",
-    "org.oci.artifact.version": "v1.0",
-    "org.oci.artifact.revision": "v1.1.0",
-    "org.oci.artifact.vendor": "Open Containers Initiative",
-    "org.oci.artifact.licenses": "MIT",
-    "org.oci.artifact.title": "Open Containers Artifact Manifest",
-    "org.oci.artifact.description": "A schema for defining artifacts"
-  }
-}
-```
+[oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
+[references-api]:                 ./manifest-references-api.md
