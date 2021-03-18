@@ -149,7 +149,7 @@ The main scenarios include:
 
 1. [Content Discovery](#content-discovery)
 1. [Content Promotion Within and Across Registries](#content-promotion-within-and-across-registries)
-1. [Deletion management](#content-deletion), providing information to de-dupe content with reference counting, and the option to delete loose references.
+1. [Lifetime management](#lifetime-management), including deletion of artifacts and their linked references.
 
 ### Content Discovery
 
@@ -280,7 +280,7 @@ oci-reg copy \
   --include-references application/vnd.notary.v2
 ```
 
-### Content Deletion
+### Lifetime Management
 
 Using the OCI artifact manifest, OCI distribution-spec APIs can provide standard delete operations, including options for deleting referenced artifacts. The registry, nor the `oci-reg` cli would need to know about specific artifact implementations.
 
