@@ -24,7 +24,7 @@ Individual artifacts include Helm, Singularity, WASM and other artifacts that cu
 
 ### Artifact Enhancements
 
-There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add an SBoM. The addition of a [`[references]`][references] property supports linking an SBoM to an image. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding SBoM or Notary v2 signatures can find the linked artifacts without changing the existing image toolchains.
+There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add an SBoM. The addition of a [`[manifests]`][manifests] property supports linking independent artifacts. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding SBoM or Notary v2 signatures can find the linked artifacts without changing the existing image tool chains.
 
 ### Example Image
 
@@ -62,7 +62,7 @@ The `net-monitor:v1` image has a representative `oci.image.manifest`, with a spe
 
 To support enhancements of existing artifacts, a new OCI artifact manifest provides for a collection of manifest references. Examples include Notary and SBoM artifacts.
 
-A Notary v2 signature, or an SBoM, would be represented as a manifest with a config object and a signature, persisted as blobs. The `[references]` collection references the wordpress image through a descriptor.
+A Notary v2 signature, or an SBoM, would be represented as a manifest with a config object and a signature, persisted as blobs. The `[manifests]` collection references the net-monitor image through a descriptor, which represents another manifest.
 
 ![Notary v2 signature](./media/notaryv2-signature.svg)
 
@@ -74,11 +74,7 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
 {
   "schemaVersion": 1,
   "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-  "artifactType": "application/vnd.cncf.notary.v2",
-  "config": {
-    "mediaType": "application/vnd.cncf.notary.config.v2+json",
-    "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
-    "size": 102
+  "artifactType": "application/vnd.cncf.notary.v2"
   },
   "blobs": [
     {
@@ -87,7 +83,7 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
       "size": 32654
     }
   ],
-  "references": [
+  "manifests": [
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
@@ -100,7 +96,7 @@ A Notary v2 signature, or an SBoM, would be represented as a manifest with a con
 }
 ```
 
-The same `net-monitor:v1` image may have an associated SBoM. The `[references]` collection references the `net-monitor:v1` image through a descriptor.
+The same `net-monitor:v1` image may have an associated SBoM. The `[manifests]` collection references the `net-monitor:v1` image through a manifest descriptor.
 
 ![Notary v2 signature](./media/sbom-document.svg)
 
@@ -111,11 +107,6 @@ The same `net-monitor:v1` image may have an associated SBoM. The `[references]` 
   "schemaVersion": 1,
   "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
   "artifactType": "application/vnd.example.sbom.v1",
-  "config": {
-    "mediaType": "application/vnd.example.sbom.config.v1+json",
-    "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
-    "size": 102
-  },
   "blobs": [
     {
       "mediaType": "application/tar",
@@ -123,7 +114,7 @@ The same `net-monitor:v1` image may have an associated SBoM. The `[references]` 
       "size": 32654
     }
   ],
-  "references": [
+  "manifests": [
     {
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
@@ -135,9 +126,9 @@ The same `net-monitor:v1` image may have an associated SBoM. The `[references]` 
 
 Once all artifacts are submitted, the registry would represent a graph of the `net-monitor:v1` image, with signatures, an SBoM, along with a signature on the SBoM.
 
-![wordpress image with layers](media/net-monitor-graph.svg)
+![net-monitor image with an sbom & signatures](media/net-monitor-graph.svg)
 
-The Notary v2 signature and SBoM reference the `net-monitor:v1` image through the `[references]` collection. The `net-monitor:v1` image is represented as an oci-image, and requires no changes to its manifest to support the enhancements. The directionality of the `[references]` references enables links to existing content, without changing the existing content.
+The Notary v2 signature and SBoM reference the `net-monitor:v1` image through the `[manifests]` collection. The `net-monitor:v1` image is represented as an oci-image, and requires no changes to its manifest to support the enhancements. The directionality of the `[manifests]` references enables links to existing content, without changing the existing content.
 
 ### Deletion and Ref Counting
 
@@ -149,7 +140,7 @@ The main scenarios include:
 
 1. [Content Discovery](#content-discovery)
 1. [Content Promotion Within and Across Registries](#content-promotion-within-and-across-registries)
-1. [Lifetime management](#lifetime-management), including deletion of artifacts and their linked references.
+1. [Lifetime management](#lifetime-management), including deletion of artifacts and their linked manifests.
 
 ### Content Discovery
 
@@ -167,7 +158,7 @@ See [`/references`][references-api] API for more information on listing referenc
 
 ## Content Promotion Within and Across Registries
 
-Artifacts are promoted within and across different registries. They may be promoted from dev, through test, to production. They may continue movement to a distribution point or deployment. As artifacts are promoted, content related to that artifact must be capable of moving with the artifact. The OCI artifact manifest provides the references enabling discovery and promotion.
+Artifacts are promoted within and across different registries. They may be promoted from dev, through test, to production. They may continue movement to a distribution point or deployment. As artifacts are promoted, content related to that artifact must be capable of moving with the artifact. The OCI artifact manifest provides manifest references enabling discovery and promotion.
 
 ### Example of Content Movement Within and Across Registries
 
@@ -258,7 +249,7 @@ The `oci-reg copy` command would:
 - assure the manifest and layer/blob digests remain the same
 - copy any artifacts that are dependent on the source artifact-manifest, persisting them in the target registry. These _could_ include Notary v2 signatures, SBoMs, GPL source or other referenced artifacts.
 
-As the `[references]` collection is an optional collection, it can also be used as an optional parameter for deep or shallow copying of content.
+As the `[manifests]` collection is an optional collection, it can also be used as an optional parameter for deep or shallow copying of content.
 
 **Example**: Optional parameters to include|exclude reference types:
 
@@ -313,7 +304,7 @@ oci-reg delete registry.acme-rockets.io/base-artifacts/net-monitor@sha256:b5b2b2
 ## Further reading
 
 - [Spec details about the oci.artifact.manifest](./artifact-manifest-spec.md)
-- [OCI Artifact References API](./manifest-references-api.md) for more information on listing references
+- [OCI Artifact Links API](./manifest-references-api.md) for more information on listing references
 
 [oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
 [references-api]:                 ./manifest-references-api.md

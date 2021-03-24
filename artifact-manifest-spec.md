@@ -11,10 +11,9 @@ For usage and scenarios, see [artifact-manifest.md](./artifact-manifest.md)
 - [`net-monitor:v1` sbom](./artifact-manifest/net-monitor-image-sbom.json)
 - [`net-monitor:v1` nydus image](./artifact-manifest/net-monitor-nydus-image.json)
 
-
 ## OCI Artifact Manifest Properties
 
-An artifact manifest provides configuration, a collection of blobs and an optional collection of references to other artifacts.
+An artifact manifest provides configuration, a collection of blobs and an optional collection of manifests to other artifacts.
 
 - **`schemaVersion`** *int*
 
@@ -35,21 +34,23 @@ An artifact manifest provides configuration, a collection of blobs and an option
 
 - **`blobs`** *array of objects*
 
-    A collection of blobs, that represent a collection of 1 or more files. The blobs array is analogous to [oci.image.manifest layers][oci-image-manifest-spec-layers], however unlike [image-manifest][oci-image-manifest-spec], the ordering of blobs is specific to the artifact type. Some artifacts may choose an overlay of files, while other artifact types may store collections of files in different locations. To reflect the artifact specific implementations, the `oci.image.manifest.layers` collection is renamed to `blobs`.
+    A collection of 0 or more blobs. The blobs array is analogous to [oci.image.manifest layers][oci-image-manifest-spec-layers], however unlike [image-manifest][oci-image-manifest-spec], the ordering of blobs is specific to the artifact type. Some artifacts may choose an overlay of files, while other artifact types may store collections of files in different locations. To reflect the artifact specific implementations, the `oci.image.manifest.layers` collection is renamed to `blobs`.
 
     Each item in the array MUST be a [descriptor][descriptor].
+
+    The max number of blobs is not defined, but MAY be limited by [distribution-spec][oci-distribution-spec] implementations.
 
     An encountered `mediaType` that is unknown to the implementation MUST be ignored.
 
-- **`references`** *array of objects*
+- **`manifests`** *array of objects*
 
-   An OPTIONAL collection of referenced artifacts. When used, the artifact defined within this manifest is said to be dependent upon the referenced `manifests`.
+   An OPTIONAL collection of referenced manifests, which represent linked artifacts. When used, the artifact defined within this manifest is said to be dependent upon the referenced `manifests`.
 
-   As manifests within the `[references]` array are deleted, this manifest MAY be deleted. [Distribution spec][oci-distribution-spec] implementations that implement de-duplication, MAY implement ref counting.
+   As manifests within the `[manifests]` array are deleted, this manifest MAY be deleted. If all `[manifests]` are deleted, and this manifest has no tag reference, the registry MAY delete, based on registry specific use cases. [Distribution spec][oci-distribution-spec] implementations that implement de-duplication, MAY implement ref counting.
 
-   Artifacts authors that implement the `oci.artifact.manifest` MAY support tagged references to the artifact. Artifacts that reference other artifacts through the use of `[references]` are said to be dependent upon the referenced artifact and not typically directly referenced through tags. When an artifact has both a `[references]` entry, and a tag, the [distribution-spec][oci-distribution-spec] implementation MAY maintain the manifest as the tag reference is expected to be individually referenced. As the manifest is dereferenced from a tag, and all `[references]` entries are removed, the manifest SHOULD be deleted.
+   Artifacts authors that implement the `oci.artifact.manifest` MAY support tagged references to the artifact. Artifacts that reference other artifacts through the use of `[manifests]` are said to be dependent upon the referenced artifact and not typically directly referenced through tags. When an artifact has both a `[manifests]` entry, and a tag, the [distribution-spec][oci-distribution-spec] implementation MAY maintain the manifest as the tag reference is expected to be individually referenced. As the manifest is dereferenced from a tag, and all `[manifests]` entries are removed, the manifest SHOULD be deleted.
 
-    Each item in the array MUST be a [descriptor][descriptor].
+    Each item in the array MUST be a [descriptor][descriptor] representing a manifest.
 
 - **`annotations`** *string-string map*
 
