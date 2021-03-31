@@ -34,7 +34,7 @@ GET /v2/_ext/oci-artifacts/v1/{repository}/manifests/{digest}/references?n=10&ar
 **expanded example:**
 
 ```rest
-GET /v2/_ext/oci-artifacts/v1/net-monitor/manifests/sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b/references?n=10&artifactType=application/vnd.oci.notary.v2.config+json
+GET /v2/_ext/oci-artifacts/v1/net-monitor/manifests/sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b/references?n=10&artifactType=application/vnd.oci.notary.v2
 ```
 
 ### Artifact References API results
@@ -43,8 +43,7 @@ As not all [distribution-spec][oci-distribution-spec] implementations MAY choose
 
 This paged result MUST return the following elements:
 
-- `artifactType`: The [oci.artifact.manifest.artifactType](./artifact-manifest-spec.md#artifacttype)
-- `digest`: The digest used to retrieve the manifest
+- `digest`: The digest used to retrieve the referenced manifest
 - `manifest`: The contents of `oci.artifact.manifest`. By providing the manifest, consumers can choose which elements they require to determine which manifest of the paged result they must fetch.
 - `@nextLink`: Used for paged results
 
@@ -55,17 +54,11 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
 ```json
 [
   {
-    "artifactType": "application/cncf.notary.v2",
     "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
     "manifest": {
       "schemaVersion": 1,
       "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-      "artifactType": "application/vnd.cncf.notary.v2+json",
-      "config": {
-        "mediaType": "application/vnd.cncf.notary.config.v2+json",
-        "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
-        "size": 102
-      },
+      "artifactType": "application/vnd.cncf.notary.v2",
       "blobs": [
         {
           "mediaType": "application/tar",
@@ -73,7 +66,7 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
           "size": 32654
         }
       ],
-      "references": [
+      "manifests": [
         {
           "mediaType": "application/vnd.oci.image.manifest.v1+json",
           "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
@@ -86,17 +79,11 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
     }
   },
   {
-    "artifactType": "application/cncf.notary.v2",
     "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
     "manifest": {
       "schemaVersion": 1,
       "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-      "artifactType": "application/vnd.cncf.notary.v2+json",
-      "config": {
-        "mediaType": "application/vnd.cncf.notary.config.v2+json",
-        "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
-        "size": 102
-      },
+      "artifactType": "application/vnd.cncf.notary.v2",
       "blobs": [
         {
           "mediaType": "application/tar",
@@ -104,7 +91,7 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
           "size": 32654
         }
       ],
-      "references": [
+      "manifests": [
         {
           "mediaType": "application/vnd.oci.image.manifest.v1+json",
           "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
@@ -117,16 +104,11 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
     }
   },
   {
-    "artifactType": "application/vnd.example.sbom.v1",
     "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
     "manifest": {
       "schemaVersion": 1,
-      "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-      "artifactType": "application/vnd.example.sbom.v1",
-      "config": {
-        "mediaType": "application/vnd.example.sbom.config.v1+json",
-        "digest": "sha256:b5b2b2c507a0944348e0303114d8d93aaaa081732b86451d9bce1f432a537bc7",
-        "size": 102
+      "mediaType": "application/vnd.oci.artifact.manifest.v1",
+      "artifactType": "application/vnd.example.sbom.v0"
       },
       "blobs": [
         {
@@ -143,7 +125,7 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
         }
       ],
       "annotations": {
-        "openssf.sbom.author": "wabbit-networks.io"
+        "example.sbom.author": "wabbit-networks.io"
       }
     }
   },

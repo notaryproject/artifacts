@@ -17,6 +17,6 @@
     }
   ],
   "annotations": {
-    "openssf.sbom.author": "wabbit-networks.io"
+    "example.sbom.author": "wabbit-networks.io"
   }
 }
