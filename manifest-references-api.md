@@ -49,66 +49,41 @@ This paged result MUST return the following elements:
 
 As an example, Notary v2 manifests use annotations to determine which Notary v2 signature they should retrieve: `"org.cncf.notary.v2.signature.subject": "wabbit-networks.io"`
 
-**example result of artifacts that reference the `net-monitor` image:
-
+**example result of artifacts that reference the `net-monitor` image:**
 ```json
-[
-  {
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "manifest": {
-      "schemaVersion": 1,
-      "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-      "artifactType": "application/vnd.cncf.notary.v2",
-      "blobs": [
-        {
-          "mediaType": "application/tar",
-          "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
-          "size": 32654
+{
+  "references": [
+    {
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+      "manifest": {
+        "schemaVersion": 1,
+        "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+        "artifactType": "application/vnd.cncf.notary.v2",
+        "blobs": [
+          {
+            "mediaType": "application/tar",
+            "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+            "size": 32654
+          }
+        ],
+        "manifests": [
+          {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+            "size": 16724
+          }
+        ],
+        "annotations": {
+          "org.cncf.notary.v2.signature.subject": "wabbit-networks.io"
         }
-      ],
-      "manifests": [
-        {
-          "mediaType": "application/vnd.oci.image.manifest.v1+json",
-          "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-          "size": 16724
-        }
-      ],
-      "annotations": {
-        "org.cncf.notary.v2.signature.subject": "wabbit-networks.io"
       }
-    }
-  },
-  {
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "manifest": {
-      "schemaVersion": 1,
-      "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-      "artifactType": "application/vnd.cncf.notary.v2",
-      "blobs": [
-        {
-          "mediaType": "application/tar",
-          "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
-          "size": 32654
-        }
-      ],
-      "manifests": [
-        {
-          "mediaType": "application/vnd.oci.image.manifest.v1+json",
-          "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-          "size": 16724
-        }
-      ],
-      "annotations": {
-        "org.cncf.notary.v2.signature.subject": "acme-rockets.io"
-      }
-    }
-  },
-  {
-    "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
-    "manifest": {
-      "schemaVersion": 1,
-      "mediaType": "application/vnd.oci.artifact.manifest.v1",
-      "artifactType": "application/vnd.example.sbom.v0"
+    },
+    {
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+      "manifest": {
+        "schemaVersion": 1,
+        "mediaType": "application/vnd.oci.artifact.manifest.v1",
+        "artifactType": "application/vnd.example.sbom.v0"
       },
       "blobs": [
         {
@@ -128,9 +103,9 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
         "example.sbom.author": "wabbit-networks.io"
       }
     }
-  },
+  ],
   "@nextLink": "{opaqueUrl}"
-]
+}
 ```
 
 [oci.artifact.manifest-spec]:           ./artifact-manifest-spec.md

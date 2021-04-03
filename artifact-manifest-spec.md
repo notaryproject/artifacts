@@ -28,13 +28,11 @@ An artifact manifest provides configuration, a collection of blobs and an option
 
   A unique value, [defining the type of unique artifact type][artifact-type], as registered with iana.org. See [registering unique types.][registering-iana]. OCI Artifacts that used `oci.image.manifest` used the `manifest.config.mediaType` to differentiate the type of artifact, differentiating from a container image. Artifact authors that implement `oci.artifact.manifest` use `artifactType` to differentiate the type of artifact, freeing up the `config.mediaType` to be OPTIONAL, or shared config schemas between multiple artifact types.
 
-- **`config`** *[descriptor](descriptor.md)*
-
-    This OPTIONAL property references the configuration object for an artifact. When provided, the configuration object MUST be defined with a [descriptor][descriptor], but MAY be any schema defined by the artifact author. As with any descriptor, the `descriptor.mediaType` MUST be registered with iana.org for uniqueness. The `config.mediaType` MAY use any existing schema, and artifact authors are encouraged to utilize existing schemas to simplify artifact implementations.
-
 - **`blobs`** *array of objects*
 
     A collection of 0 or more blobs. The blobs array is analogous to [oci.image.manifest layers][oci-image-manifest-spec-layers], however unlike [image-manifest][oci-image-manifest-spec], the ordering of blobs is specific to the artifact type. Some artifacts may choose an overlay of files, while other artifact types may store collections of files in different locations. To reflect the artifact specific implementations, the `oci.image.manifest.layers` collection is renamed to `blobs`.
+
+    The [image-config][oci-config] would be considered another blob with a unique `mediaType`. See the [net-monitor-image-artifact.json](./artifact-manifest/net-monitor-image-artifact.json) for an example.
 
     Each item in the array MUST be a [descriptor][descriptor].
 
@@ -105,6 +103,12 @@ This specification defines the following annotation keys, intended for but not l
 }
 ```
 
+## Q&A
+
+- **Q**: Where is the `config` property?
+  - **A**: The `oci.image.manifest.config` object is a [descriptor][descriptor] stored as a blob, alongside the other `[layers]`. Instead of making this an OPTIONAL property on `oci.artifact.manifest`, artifact types that require a config can simply identify a blob as a config object. See the [net-monitor-image-artifact.json](./artifact-manifest/net-monitor-image-artifact.json) for an example.
+
+[oci-config]:                      https://github.com/opencontainers/image-spec/blob/master/config.md
 [oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
 [oci-image-manifest-spec-layers]:  https://github.com/opencontainers/image-spec/blob/master/manifest.md#image-manifest-property-descriptions
 [oci-image-index]:                 https://github.com/opencontainers/image-spec/blob/master/image-index.md
